@@ -17,13 +17,17 @@ def query():
     conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM sales")
+    cur.execute("""
+    SELECT cust, prod, avg(quant), max(quant)
+    FROM sales
+    WHERE year=2016
+    GROUP BY cust, prod
+    """)
     
     _global = []
     
     for row in cur:
-        if row['quant'] > 10:
-            _global.append(row)
+        _global.append(row) 
     
     
     return tabulate.tabulate(_global,
