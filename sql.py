@@ -5,7 +5,7 @@ import tabulate
 from dotenv import load_dotenv
 
 
-def query():
+def query(query):
     """
     Used for testing standard queries in SQL.
     """
@@ -18,15 +18,8 @@ def query():
     conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
-    cur.execute("SELECT * FROM sales WHERE quant > 10")
+    cur.execute(query)
 
-    return tabulate.tabulate(cur.fetchall(),
-                             headers="keys", tablefmt="psql")
-
-
-def main():
-    print(query())
-
-
-if "__main__" == __name__:
-    main()
+    output = []
+    for row in cur: output.append(row)
+    return output

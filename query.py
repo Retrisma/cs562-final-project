@@ -4,6 +4,9 @@ class Attribute:
         self.column = column
         self.aggregation_function = aggregation_function
         self.grouping_var = grouping_var
+
+        if not aggregation_function in [None, "avg", "count", "sum"]:
+            raise ValueError("not a valid aggregation function")
     
     # Construct an Attribute from a list constructed from an input list
     # input : [grouping_var or None; aggregation_function or None; column]
@@ -47,18 +50,13 @@ class EMFQuery:
 
         return EMFQuery(s, n, v, f, sigma, g)
 
-import os
-import psycopg2
-import psycopg2.extras
-import tabulate
-from dotenv import load_dotenv
+import sql
+import pandas as pd
 
 # Represents an "mf-structure" represented in "Evaluation of Ad Hoc OLAP: In-Place Computation"
 class MFStruct:
     def __init__(self, emf):
         self.emf = emf
-        self.table = []
-        self.query = None
         
     def generate_query(self):
         self.query = list(map(lambda x : x.column, emf.select_attributes))
@@ -67,19 +65,16 @@ class MFStruct:
         self.query = f"SELECT {",".join(self.query)} FROM sales"
 
     def populate_table(self):
-        load_dotenv()
+        signature = list(set(map(lambda x : x.column, emf.select_attributes)))
 
-        user = os.getenv('USER')
-        password = os.getenv('PASSWORD')
-        dbname = os.getenv('DBNAME')
+        query = f"SELECT {",".join(signature)} FROM sales"
+        table = sql.query(query)
+        self.table = pd.DataFrame(table, columns=signature)
 
-        conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
-                                cursor_factory=psycopg2.extras.DictCursor)
-        cur = conn.cursor()
-        cur.execute(self.query)
-
-        for row in cur:
-            self.table.append(row)
+    def group_by_grouping_attributes(self):
+        group_dict = {}
+        for row in self.table:
+            pass
 
 
 emf = EMFQuery(
@@ -93,7 +88,7 @@ emf = EMFQuery(
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
 )
 mf = MFStruct(emf)
-mf.generate_query()
 mf.populate_table()
 
+import tabulate
 print(tabulate.tabulate(mf.table[1:10], headers="keys", tablefmt="psql"))
