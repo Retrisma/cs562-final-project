@@ -57,13 +57,15 @@ import pandas as pd
 class MFStruct:
     def __init__(self, emf):
         self.emf = emf
-        
+    
+    # construct a simple SQL query to get all requisite data to complete an EMFQuery
     def generate_query(self):
         self.query = list(map(lambda x : x.column, emf.select_attributes))
 
         self.query = list(set(self.query))
         self.query = f"SELECT {",".join(self.query)} FROM sales"
 
+    # get initial data from SQL database
     def populate_table(self):
         signature = list(set(map(lambda x : x.column, emf.select_attributes)))
 
@@ -71,11 +73,15 @@ class MFStruct:
         table = sql.query(query)
         self.table = pd.DataFrame(table, columns=signature)
 
-    def group_by_grouping_attributes(self):
-        group_dict = {}
-        for row in self.table:
-            pass
+    # construct groups according to the defined group-by attributes
+    def group_by(self):
+        self.groups = self.table[self.emf.grouping_attributes].drop_duplicates()
+    
+    # do a scan of the table for a specific grouping variable (Figure 1)
+    def aggregate(self, grouping_variable):
+        pass #todo
 
+import tabulate
 
 emf = EMFQuery(
     "cust, 1_sum_quant, 2_sum_quant, 3_sum_quant",
@@ -90,5 +96,4 @@ emf = EMFQuery(
 mf = MFStruct(emf)
 mf.populate_table()
 
-import tabulate
-print(tabulate.tabulate(mf.table[1:10], headers="keys", tablefmt="psql"))
+# print(tabulate.tabulate(mf.table, headers="keys", tablefmt="psql"))
