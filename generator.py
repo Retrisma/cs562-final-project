@@ -14,10 +14,9 @@ def main():
     """
 
     query = """
-    SELECT cust, prod, avg(quant), max(quant)
+    SELECT cust, sum(quant)
     FROM sales
-    WHERE year=2016
-    GROUP BY cust, prod
+    GROUP BY cust
     """
 
     # Note: The f allows formatting with variables.

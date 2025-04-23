@@ -14,9 +14,9 @@ class Attribute:
         if len(input) == 1:
             return Attribute(*input, None, None)
         elif len(input) == 2:
-            return Attribute(*input, None)
+            return Attribute(*reversed(input), None)
         elif len(input) == 3:
-            return Attribute(*(reversed(input)))
+            return Attribute(*reversed(input))
     
     # Construct an Attribute from a string input from the project description
     # str : e.g. 1_sum_quant | sum_quant | quant
@@ -72,19 +72,28 @@ class MFStruct:
         query = f"SELECT {",".join(signature)} FROM sales"
         table = sql.query(query)
         self.table = pd.DataFrame(table, columns=signature)
+        pass
 
     # construct groups according to the defined group-by attributes
     def group_by(self):
         self.groups = self.table[self.emf.grouping_attributes].drop_duplicates()
     
     # do a scan of the table for a specific grouping variable (Figure 1)
-    def aggregate(self, grouping_variable):
-        pass #todo
+    def aggregate(self, column, aggregation_function):
+        new_column_name = column + "_" + aggregation_function
+        new_column = []
+        for idx,key in self.groups.iterrows():
+            val_list = []
+            for _,row in self.table.iterrows():
+                if tuple(row[self.emf.grouping_attributes]) == tuple(key):
+                    val_list.append(row[column])
+            new_column.append(sum(val_list))
+        self.groups[new_column_name] = new_column
 
 import tabulate
 
 emf = EMFQuery(
-    "cust, 1_sum_quant, 2_sum_quant, 3_sum_quant",
+    "cust, sum_quant, 1_sum_quant, 2_sum_quant, 3_sum_quant",
     "3",
     "cust",
     "1_sum_quant, 1_avg_quant, 2_sum_quant, 3_sum_quant, 3_avg_quant",
@@ -95,5 +104,7 @@ emf = EMFQuery(
 )
 mf = MFStruct(emf)
 mf.populate_table()
+mf.group_by()
+mf.aggregate("quant", "sum")
 
-# print(tabulate.tabulate(mf.table, headers="keys", tablefmt="psql"))
+print(tabulate.tabulate(mf.groups, headers="keys", tablefmt="psql"))

@@ -18,10 +18,9 @@ def query():
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
     cur.execute("""
-    SELECT cust, prod, avg(quant), max(quant)
+    SELECT cust, sum(quant)
     FROM sales
-    WHERE year=2016
-    GROUP BY cust, prod
+    GROUP BY cust
     """)
     
     _global = []
