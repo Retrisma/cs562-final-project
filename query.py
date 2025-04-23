@@ -5,7 +5,7 @@ class Attribute:
         self.aggregation_function = aggregation_function
         self.grouping_var = grouping_var
 
-        if not aggregation_function in [None, "avg", "count", "sum"]:
+        if not aggregation_function in [None, "avg", "count", "sum", "max", "min"]:
             raise ValueError("not a valid aggregation function")
     
     # Construct an Attribute from a list constructed from an input list
@@ -57,13 +57,6 @@ import pandas as pd
 class MFStruct:
     def __init__(self, emf):
         self.emf = emf
-    
-    # construct a simple SQL query to get all requisite data to complete an EMFQuery
-    def generate_query(self):
-        self.query = list(map(lambda x : x.column, emf.select_attributes))
-
-        self.query = list(set(self.query))
-        self.query = f"SELECT {",".join(self.query)} FROM sales"
 
     # get initial data from SQL database
     def populate_table(self):
@@ -72,7 +65,6 @@ class MFStruct:
         query = f"SELECT {",".join(signature)} FROM sales"
         table = sql.query(query)
         self.table = pd.DataFrame(table, columns=signature)
-        pass
 
     # construct groups according to the defined group-by attributes
     def group_by(self):
@@ -80,6 +72,15 @@ class MFStruct:
     
     # do a scan of the table for a specific grouping variable (Figure 1)
     def aggregate(self, column, aggregation_function):
+        # definitions of aggregation function names
+        aggregation_functions = {
+            "sum": sum,
+            "avg": lambda x: sum(x) / len(x),
+            "count": len,
+            "max": max,
+            "min": min
+        }
+
         new_column_name = column + "_" + aggregation_function
         new_column = []
         for idx,key in self.groups.iterrows():
@@ -87,7 +88,7 @@ class MFStruct:
             for _,row in self.table.iterrows():
                 if tuple(row[self.emf.grouping_attributes]) == tuple(key):
                     val_list.append(row[column])
-            new_column.append(sum(val_list))
+            new_column.append(aggregation_functions[aggregation_function](val_list))
         self.groups[new_column_name] = new_column
 
 import tabulate
@@ -105,6 +106,6 @@ emf = EMFQuery(
 mf = MFStruct(emf)
 mf.populate_table()
 mf.group_by()
-mf.aggregate("quant", "sum")
+mf.aggregate("quant", "avg")
 
 print(tabulate.tabulate(mf.groups, headers="keys", tablefmt="psql"))
