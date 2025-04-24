@@ -62,7 +62,7 @@ class MFStruct:
     def populate_table(self):
         #signature = list(set(map(lambda x : x.column, emf.select_attributes)))
 
-        #query = f"SELECT {",".join(signature)} FROM sales"
+        #query = f'SELECT {",".join(signature)} FROM sales'
         query = f"SELECT * FROM sales"
         table = sql.query(query)
         #self.table = pd.DataFrame(table, columns=signature)
