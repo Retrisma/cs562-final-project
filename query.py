@@ -1,3 +1,14 @@
+class Parser:
+    def reformat(input_string):
+        tokens = list(input_string)
+        for i in range(len(tokens)):
+            if tokens[i] == '.':
+                tokens[i - 1] = 'row'
+            if tokens[i] == '=':
+                tokens[i] = '=='
+        tokens = "".join(tokens)
+        return tokens
+
 # Represents an Attribute being queried in the database.
 class Attribute:
     def __init__(self, column, aggregation_function, grouping_var):
@@ -30,7 +41,7 @@ class EMFQuery:
         self.num_grouping_variables = int(n)
         self.grouping_attributes = v.split(", ")
         self.f_vect = list(map(lambda x : Attribute.build_from_str(x), f.split(", ")))
-        self.select_condition_vect = sigma.split("\n")
+        self.select_condition_vect = list(map(lambda x : Parser.reformat(x), sigma.split("\n")))
         self.having_condition = g # todo
     
     # Construct an EMFQuery from the command line
@@ -71,6 +82,7 @@ class MFStruct:
     # construct groups according to the defined group-by attributes
     def group_by(self):
         self.groups = self.table[self.emf.grouping_attributes].drop_duplicates()
+        self.data_output = self.groups.copy()
     
     # do a scan of the table for a specific grouping variable (Figure 1)
     def aggregate(self, column, aggregation_function, condition, grouping_variable):
@@ -82,7 +94,11 @@ class MFStruct:
             "max": max,
             "min": min
         }
+        new_column_name = aggregation_function + "_" +column
+        if grouping_variable != None:
+            new_column_name = str(grouping_variable) + "_" + new_column_name
 
+        print("aggregating " + new_column_name)
         new_column = []
         # for each group: collect all values of column for all matching rows
         # todo?: hella inefficient just rawdogging nested loops
@@ -96,23 +112,17 @@ class MFStruct:
                     val_list.append(row[column])
             new_column.append(aggregation_functions[aggregation_function](val_list))
 
-        new_column_name = column + "_" + aggregation_function
-        if grouping_variable != None:
-            new_column_name = str(grouping_variable) + "_" + new_column_name
-        self.groups[new_column_name] = new_column
+        self.data_output[new_column_name] = new_column
+    
+    def aggregate_all(self):
+        for f in self.emf.f_vect:
+            self.aggregate(f.column, f.aggregation_function, 
+                           self.emf.select_condition_vect[int(f.grouping_var) - 1], f.grouping_var)
+            print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql"))
 
 import tabulate
 
-class Parser:
-    def reformat(input_string):
-        tokens = list(input_string)
-        for i in range(len(tokens)):
-            if tokens[i] == '.':
-                tokens[i - 1] = 'row'
-            if tokens[i] == '=':
-                tokens[i] = '=='
-        tokens = "".join(tokens)
-        return tokens.trim()
+
 
 emf = EMFQuery(
     "cust, sum_quant, 1_sum_quant, 2_sum_quant, 3_sum_quant",
@@ -130,7 +140,5 @@ mf = MFStruct(emf)
 mf.populate_table()
 
 mf.group_by()
-mf.aggregate("quant", "avg", Parser.reformat("1.state='NJ'"), 1)
 
-print(tabulate.tabulate(mf.groups, headers="keys", tablefmt="psql"))
-
+mf.aggregate_all()
