@@ -17,28 +17,29 @@ class Parser:
 
 # Represents an Attribute being queried in the database.
 class Attribute:
-    def __init__(self, column, aggregation_function, grouping_var):
+    def __init__(self, column, aggregation_function, grouping_var, string):
         self.column = column
         self.aggregation_function = aggregation_function
         self.grouping_var = grouping_var
+        self.string = string
 
         if not aggregation_function in [None, "avg", "count", "sum", "max", "min"]:
             raise ValueError("not a valid aggregation function")
     
     # Construct an Attribute from a list constructed from an input list
     # input : [grouping_var or None; aggregation_function or None; column]
-    def build(input):
+    def build(input, str):
         if len(input) == 1:
-            return Attribute(*input, None, None)
+            return Attribute(*input, None, None, str)
         elif len(input) == 2:
-            return Attribute(*reversed(input), None)
+            return Attribute(*reversed(input), None, str)
         elif len(input) == 3:
-            return Attribute(*reversed(input))
+            return Attribute(*reversed(input), str)
     
     # Construct an Attribute from a string input from the project description
     # str : e.g. 1_sum_quant | sum_quant | quant
     def build_from_str(str):
-        return Attribute.build(str.split("_"))
+        return Attribute.build(str.split("_"), str)
 
 # Represents the relational operator Φ with its six arguments
 class EMFQuery:
@@ -93,6 +94,8 @@ class MFStruct:
     
     # do a scan of the table for a specific grouping variable (Figure 1)
     def aggregate(self, column, aggregation_function, condition, grouping_variable):
+        if aggregation_function == None: return
+
         # definitions of aggregation function names
         aggregation_functions = {
             "sum": sum,
@@ -125,9 +128,10 @@ class MFStruct:
         self.data_output[new_column_name] = list(map(aggregation_functions[aggregation_function], self.column_vals[(column, grouping_variable)]))
     
     def aggregate_all(self):
-        for f in self.emf.f_vect:
+        for f in list(set(self.emf.select_attributes) | set(self.emf.f_vect)):
             self.aggregate(f.column, f.aggregation_function, 
-                           self.emf.select_condition_vect[int(f.grouping_var) - 1], f.grouping_var)
+                           self.emf.select_condition_vect[int(f.grouping_var) - 1] if f.grouping_var != None else None,
+                           f.grouping_var)
             print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
     def global_having_condition(self):
@@ -139,6 +143,17 @@ class MFStruct:
             if not eval(condition):
                 self.data_output.drop(idx, inplace=True)
 
+        print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
+    
+    def clean_up(self):
+        print("cleaning up unrequested columns")
+
+        for column in self.data_output.columns:
+            column_name = column
+            if column_name.startswith("_"): column_name = column_name[1:]
+            if column_name not in list(map(lambda x : x.string, self.emf.select_attributes)):
+                self.data_output.drop(columns=[column], inplace=True)
+            else: self.data_output.rename(columns={column: column_name})
         print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
 import tabulate
@@ -164,3 +179,4 @@ mf.group_by()
 
 mf.aggregate_all()
 mf.global_having_condition()
+mf.clean_up()
