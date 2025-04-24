@@ -1,4 +1,6 @@
+# Reformats input strings from SQL to be python-friendly
 class Parser:
+    # Reformats select conditions to change grouping variable to current row
     def reformat(input_string):
         tokens = list(input_string)
         for i in range(len(tokens)):
@@ -8,15 +10,23 @@ class Parser:
                 tokens[i] = '=='
         tokens = "".join(tokens)
         return tokens
+    # Reformats global having clause to get columns from current row
     def reformat_having(input_string, columns):
         tokens = input_string.split(" ")
         for i in range(len(tokens)):
             if "_" + tokens[i] in columns:
                 tokens[i] = "row._" + tokens[i]
+            if tokens[i] == '=':
+                tokens[i] = '=='
         return " ".join(tokens)
 
 # Represents an Attribute being queried in the database.
 class Attribute:
+    # CONSTRUCTOR
+    # column : str
+    # aggregation function : "avg" | "count" | "sum" | "max" | "min"
+    # grouping_var: str
+    # str : e.g. 1_sum_quant | sum_quant | quant
     def __init__(self, column, aggregation_function, grouping_var, string):
         self.column = column
         self.aggregation_function = aggregation_function
@@ -28,6 +38,8 @@ class Attribute:
     
     # Construct an Attribute from a list constructed from an input list
     # input : [grouping_var or None; aggregation_function or None; column]
+    # str : e.g. 1_sum_quant | sum_quant | quant
+    # returns : new Attribute
     def build(input, str):
         if len(input) == 1:
             return Attribute(*input, None, None, str)
@@ -38,20 +50,29 @@ class Attribute:
     
     # Construct an Attribute from a string input from the project description
     # str : e.g. 1_sum_quant | sum_quant | quant
+    # returns : new Attribute
     def build_from_str(str):
         return Attribute.build(str.split("_"), str)
 
 # Represents the relational operator Φ with its six arguments
 class EMFQuery:
+    # CONSTRUCTOR
+    # s : attribute strings separated by ", "
+    # n : str of int
+    # v : strings separated by ", "
+    # f : attribute strings separated by ", "
+    # sigma : SQL-formatted comparisons separated by "\n"
+    # g : SQL-formatted comparison
     def __init__(self, s, n, v, f, sigma, g):
         self.select_attributes = list(map(lambda x : Attribute.build_from_str(x), s.split(", ")))
         self.num_grouping_variables = int(n)
         self.grouping_attributes = v.split(", ")
         self.f_vect = list(map(lambda x : Attribute.build_from_str(x), f.split(", ")))
         self.select_condition_vect = list(map(lambda x : Parser.reformat(x), sigma.split("\n")))
-        self.having_condition = g # todo
+        self.having_condition = g
     
     # Construct an EMFQuery from the command line
+    # returns : new EMFQuery
     def build():
         print("SELECT ATTRIBUTE (S):")
         s = input()
@@ -73,18 +94,18 @@ import pandas as pd
 
 # Represents an "mf-structure" represented in "Evaluation of Ad Hoc OLAP: In-Place Computation"
 class MFStruct:
+    # CONSTRUCTOR
+    # emf : EMFQuery
     def __init__(self, emf):
         self.emf = emf
+
+        # dynamic programming: reuse column values from combinations of grouping variables and columns
         self.column_vals = {}
 
     # get initial data from SQL database
     def populate_table(self):
-        #signature = list(set(map(lambda x : x.column, emf.select_attributes)))
-
-        #query = f'SELECT {",".join(signature)} FROM sales'
         query = f"SELECT * FROM sales"
         table = sql.query(query)
-        #self.table = pd.DataFrame(table, columns=signature)
         self.table = pd.DataFrame(table, columns=["cust", "prod", "day", "month", "year", "state", "quant", "date"])
 
     # construct groups according to the defined group-by attributes
@@ -93,7 +114,12 @@ class MFStruct:
         self.data_output = self.groups.copy()
     
     # do a scan of the table for a specific grouping variable (Figure 1)
+    # column : str
+    # aggregation function : "avg" | "count" | "sum" | "max" | "min"
+    # condition : Python-formatted comparison
+    # grouping_variable : str
     def aggregate(self, column, aggregation_function, condition, grouping_variable):
+        # only aggregate if there is a provided aggregation function
         if aggregation_function == None: return
 
         # definitions of aggregation function names
@@ -104,25 +130,26 @@ class MFStruct:
             "max": max,
             "min": min
         }
+
+        # build column name with prepended "_"
         new_column_name = aggregation_function + "_" +column
         if grouping_variable != None:
             new_column_name = "_" + str(grouping_variable) + "_" + new_column_name
 
         print("aggregating " + new_column_name)
 
+        
         if (column, grouping_variable) not in self.column_vals:
             self.column_vals[(column, grouping_variable)] = []
             # for each group: collect all values of column for all matching rows
             # todo?: hella inefficient just rawdogging nested loops
             # possibly sort self.table on the groups first?
-            # also: implement dynamism to store val_list in case multiple aggregation functions on that one column are needed
             for idx,key in self.groups.iterrows():
                 val_list = []
                 for _,row in self.table.iterrows():
                     if condition != None and not eval(condition): continue
                     if tuple(row[self.emf.grouping_attributes]) == tuple(key):
                         val_list.append(row[column])
-                # new_column.append(aggregation_functions[aggregation_function](val_list))
                 self.column_vals[(column, grouping_variable)].append(val_list)
 
         self.data_output[new_column_name] = list(map(aggregation_functions[aggregation_function], self.column_vals[(column, grouping_variable)]))
@@ -174,9 +201,7 @@ emf = EMFQuery(
 
 mf = MFStruct(emf)
 mf.populate_table()
-
 mf.group_by()
-
 mf.aggregate_all()
 mf.global_having_condition()
 mf.clean_up()
