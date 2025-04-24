@@ -8,6 +8,12 @@ class Parser:
                 tokens[i] = '=='
         tokens = "".join(tokens)
         return tokens
+    def reformat_having(input_string, columns):
+        tokens = input_string.split(" ")
+        for i in range(len(tokens)):
+            if "_" + tokens[i] in columns:
+                tokens[i] = "row._" + tokens[i]
+        return " ".join(tokens)
 
 # Represents an Attribute being queried in the database.
 class Attribute:
@@ -96,7 +102,7 @@ class MFStruct:
         }
         new_column_name = aggregation_function + "_" +column
         if grouping_variable != None:
-            new_column_name = str(grouping_variable) + "_" + new_column_name
+            new_column_name = "_" + str(grouping_variable) + "_" + new_column_name
 
         print("aggregating " + new_column_name)
         new_column = []
@@ -120,6 +126,17 @@ class MFStruct:
                            self.emf.select_condition_vect[int(f.grouping_var) - 1], f.grouping_var)
             print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql"))
 
+    def global_having_condition(self):
+        print("applying having condition")
+        if self.emf.having_condition == None: return
+        condition = Parser.reformat_having(self.emf.having_condition, self.data_output.columns)
+
+        for idx,row in self.data_output.iterrows():
+            if not eval(condition):
+                self.data_output.drop(idx, inplace=True)
+
+        print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql"))
+
 import tabulate
 
 
@@ -142,3 +159,4 @@ mf.populate_table()
 mf.group_by()
 
 mf.aggregate_all()
+mf.global_having_condition()
