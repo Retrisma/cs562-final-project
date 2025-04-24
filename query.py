@@ -1,6 +1,8 @@
 # Reformats input strings from SQL to be python-friendly
 class Parser:
     # Reformats select conditions to change grouping variable to current row
+    # input_string : SQL-formatted comparison
+    # returns : Python-formatted comparison
     def reformat(input_string):
         tokens = list(input_string)
         for i in range(len(tokens)):
@@ -11,6 +13,9 @@ class Parser:
         tokens = "".join(tokens)
         return tokens
     # Reformats global having clause to get columns from current row
+    # input_string : SQL-formatted comparison
+    # columns : list of str
+    # returns : Python-formatted comparison
     def reformat_having(input_string, columns):
         tokens = input_string.split(" ")
         for i in range(len(tokens)):
@@ -24,7 +29,7 @@ class Parser:
 class Attribute:
     # CONSTRUCTOR
     # column : str
-    # aggregation function : "avg" | "count" | "sum" | "max" | "min"
+    # aggregation function : None | "avg" | "count" | "sum" | "max" | "min"
     # grouping_var: str
     # str : e.g. 1_sum_quant | sum_quant | quant
     def __init__(self, column, aggregation_function, grouping_var, string):
