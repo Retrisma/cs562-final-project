@@ -60,18 +60,20 @@ class MFStruct:
 
     # get initial data from SQL database
     def populate_table(self):
-        signature = list(set(map(lambda x : x.column, emf.select_attributes)))
+        #signature = list(set(map(lambda x : x.column, emf.select_attributes)))
 
-        query = f"SELECT {",".join(signature)} FROM sales"
+        #query = f"SELECT {",".join(signature)} FROM sales"
+        query = f"SELECT * FROM sales"
         table = sql.query(query)
-        self.table = pd.DataFrame(table, columns=signature)
+        #self.table = pd.DataFrame(table, columns=signature)
+        self.table = pd.DataFrame(table, columns=["cust", "prod", "day", "month", "year", "state", "quant", "date"])
 
     # construct groups according to the defined group-by attributes
     def group_by(self):
         self.groups = self.table[self.emf.grouping_attributes].drop_duplicates()
     
     # do a scan of the table for a specific grouping variable (Figure 1)
-    def aggregate(self, column, aggregation_function):
+    def aggregate(self, column, aggregation_function, condition, grouping_variable):
         # definitions of aggregation function names
         aggregation_functions = {
             "sum": sum,
@@ -81,17 +83,36 @@ class MFStruct:
             "min": min
         }
 
-        new_column_name = column + "_" + aggregation_function
         new_column = []
+        # for each group: collect all values of column for all matching rows
+        # todo?: hella inefficient just rawdogging nested loops
+        # possibly sort self.table on the groups first?
+        # also: implement dynamism to store val_list in case multiple aggregation functions on that one column are needed
         for idx,key in self.groups.iterrows():
             val_list = []
             for _,row in self.table.iterrows():
+                if condition != None and not eval(condition): continue
                 if tuple(row[self.emf.grouping_attributes]) == tuple(key):
                     val_list.append(row[column])
             new_column.append(aggregation_functions[aggregation_function](val_list))
+
+        new_column_name = column + "_" + aggregation_function
+        if grouping_variable != None:
+            new_column_name = str(grouping_variable) + "_" + new_column_name
         self.groups[new_column_name] = new_column
 
 import tabulate
+
+class Parser:
+    def reformat(input_string):
+        tokens = list(input_string)
+        for i in range(len(tokens)):
+            if tokens[i] == '.':
+                tokens[i - 1] = 'row'
+            if tokens[i] == '=':
+                tokens[i] = '=='
+        tokens = "".join(tokens)
+        return tokens.trim()
 
 emf = EMFQuery(
     "cust, sum_quant, 1_sum_quant, 2_sum_quant, 3_sum_quant",
@@ -103,9 +124,13 @@ emf = EMFQuery(
     3.state='CT'""",
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
 )
+
+
 mf = MFStruct(emf)
 mf.populate_table()
+
 mf.group_by()
-mf.aggregate("quant", "avg")
+mf.aggregate("quant", "avg", Parser.reformat("1.state='NJ'"), 1)
 
 print(tabulate.tabulate(mf.groups, headers="keys", tablefmt="psql"))
+

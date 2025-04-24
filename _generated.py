@@ -18,7 +18,7 @@ def query():
                             cursor_factory=psycopg2.extras.DictCursor)
     cur = conn.cursor()
     cur.execute("""
-    SELECT cust, sum(quant)
+    SELECT *
     FROM sales
     GROUP BY cust
     """)
