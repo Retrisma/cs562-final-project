@@ -74,6 +74,7 @@ import pandas as pd
 class MFStruct:
     def __init__(self, emf):
         self.emf = emf
+        self.column_vals = {}
 
     # get initial data from SQL database
     def populate_table(self):
@@ -105,26 +106,29 @@ class MFStruct:
             new_column_name = "_" + str(grouping_variable) + "_" + new_column_name
 
         print("aggregating " + new_column_name)
-        new_column = []
-        # for each group: collect all values of column for all matching rows
-        # todo?: hella inefficient just rawdogging nested loops
-        # possibly sort self.table on the groups first?
-        # also: implement dynamism to store val_list in case multiple aggregation functions on that one column are needed
-        for idx,key in self.groups.iterrows():
-            val_list = []
-            for _,row in self.table.iterrows():
-                if condition != None and not eval(condition): continue
-                if tuple(row[self.emf.grouping_attributes]) == tuple(key):
-                    val_list.append(row[column])
-            new_column.append(aggregation_functions[aggregation_function](val_list))
 
-        self.data_output[new_column_name] = new_column
+        if (column, grouping_variable) not in self.column_vals:
+            self.column_vals[(column, grouping_variable)] = []
+            # for each group: collect all values of column for all matching rows
+            # todo?: hella inefficient just rawdogging nested loops
+            # possibly sort self.table on the groups first?
+            # also: implement dynamism to store val_list in case multiple aggregation functions on that one column are needed
+            for idx,key in self.groups.iterrows():
+                val_list = []
+                for _,row in self.table.iterrows():
+                    if condition != None and not eval(condition): continue
+                    if tuple(row[self.emf.grouping_attributes]) == tuple(key):
+                        val_list.append(row[column])
+                # new_column.append(aggregation_functions[aggregation_function](val_list))
+                self.column_vals[(column, grouping_variable)].append(val_list)
+
+        self.data_output[new_column_name] = list(map(aggregation_functions[aggregation_function], self.column_vals[(column, grouping_variable)]))
     
     def aggregate_all(self):
         for f in self.emf.f_vect:
             self.aggregate(f.column, f.aggregation_function, 
                            self.emf.select_condition_vect[int(f.grouping_var) - 1], f.grouping_var)
-            print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql"))
+            print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
     def global_having_condition(self):
         print("applying having condition")
@@ -135,7 +139,7 @@ class MFStruct:
             if not eval(condition):
                 self.data_output.drop(idx, inplace=True)
 
-        print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql"))
+        print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
 import tabulate
 
