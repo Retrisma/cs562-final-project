@@ -1,5 +1,26 @@
 from multiprocessing import Pool
 import numpy as np
+import os
+import psycopg2
+import psycopg2.extras
+import tabulate
+from dotenv import load_dotenv
+
+def sql_query(query):
+    load_dotenv()
+
+    user = os.getenv('USER')
+    password = os.getenv('PASSWORD')
+    dbname = os.getenv('DBNAME')
+
+    conn = psycopg2.connect("dbname="+dbname+" user="+user+" password="+password,
+                            cursor_factory=psycopg2.extras.DictCursor)
+    cur = conn.cursor()
+    cur.execute(query)
+
+    output = []
+    for row in cur: output.append(row)
+    return output[1:200]
 
 # Reformats input strings from SQL to be python-friendly
 class Parser:
@@ -126,7 +147,6 @@ class EMFQuery:
 
         return EMFQuery(s, n, v, f, sigma, g)
 
-import sql
 import pandas as pd
 
 # Represents an "mf-structure" represented in "Evaluation of Ad Hoc OLAP: In-Place Computation"
@@ -143,7 +163,7 @@ class MFStruct:
     # N.B.: columns from sales table are hardcoded in this function
     def populate_table(self):
         query = f"SELECT * FROM sales"
-        table = sql.query(query)
+        table = sql_query(query)
         self.table = pd.DataFrame(table, columns=["cust", "prodname", "day", "month", "year", "state", "quant", "date"])
 
     # construct groups according to the defined group-by attributes

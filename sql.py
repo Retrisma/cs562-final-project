@@ -6,9 +6,6 @@ from dotenv import load_dotenv
 
 
 def query(query):
-    """
-    Used for testing standard queries in SQL.
-    """
     load_dotenv()
 
     user = os.getenv('USER')
