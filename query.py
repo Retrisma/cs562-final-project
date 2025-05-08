@@ -165,44 +165,52 @@ class MFStruct:
             new_column_name = "_" + str(grouping_variable) + "_" + new_column_name
 
         print("aggregating " + new_column_name)
-
         
+        # if G.V. and column pair is present in dynamic programming table, we don't need to aggregate again
         if (column, grouping_variable) not in self.column_vals:
             self.column_vals[(column, grouping_variable)] = []
             # for each group: collect all values of column for all matching rows
-            # todo?: hella inefficient just rawdogging nested loops
-            # possibly sort self.table on the groups first?
             for idx,key in self.groups.iterrows():
                 val_list = []
                 for _,row in self.table.iterrows():
+                    # discard row if the evaluation condition doesn't match (or is None)
                     if condition != None and not eval(condition): continue
+                    # discard row if its grouping key doesn't match
                     if tuple(row[self.emf.grouping_attributes]) == tuple(key):
                         val_list.append(row[column])
                 self.column_vals[(column, grouping_variable)].append(val_list)
 
+        # apply the appropriate aggregation function to the column
         self.data_output[new_column_name] = list(map(aggregation_functions[aggregation_function], self.column_vals[(column, grouping_variable)]))
     
+    # aggregate each requested column of the table in sequence
     def aggregate_all(self):
+        # the columns that must be aggregated are both S and [f], without duplicates
         for f in list(set(self.emf.select_attributes) | set(self.emf.f_vect)):
             self.aggregate(f.column, f.aggregation_function, 
                            self.emf.select_condition_vect[int(f.grouping_var) - 1] if f.grouping_var != None else None,
                            f.grouping_var)
             print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
+    # apply the global having condition (G) to the final table
     def global_having_condition(self):
         print("applying having condition")
+        # if the having condition isn't provided, skip
         if self.emf.having_condition == None: return
         condition = Parser.reformat_having(self.emf.having_condition, self.data_output.columns)
 
+        # drop each row from the table if it doesn't fit the G condition
         for idx,row in self.data_output.iterrows():
             if not eval(condition):
                 self.data_output.drop(idx, inplace=True)
 
         print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
     
+    # perform some post-processing tidying up
     def clean_up(self):
         print("cleaning up unrequested columns")
 
+        # remove columns from the table if they aren't included in the initial select (S)
         for column in self.data_output.columns:
             column_name = column
             if column_name.startswith("_"): column_name = column_name[1:]
@@ -210,6 +218,7 @@ class MFStruct:
                 self.data_output.drop(columns=[column], inplace=True)
             else: self.data_output.rename(columns={column: column_name})
 
+        # sort the columns of the table to match S
         self.data_output = self.data_output[list(map(lambda x: "_" + x.string if x.string[0].isdigit() else x.string, self.emf.select_attributes))]
         print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
