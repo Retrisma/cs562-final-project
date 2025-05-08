@@ -66,19 +66,42 @@ class EMFQuery:
     # n : str of int
     # v : strings separated by ", "
     # f : attribute strings separated by ", "
-    # sigma : SQL-formatted comparisons separated by "\n"
+    # sigma : SQL-formatted comparisons separated by ", "
     # g : SQL-formatted comparison
     def __init__(self, s, n, v, f, sigma, g):
         self.select_attributes = list(map(lambda x : Attribute.build_from_str(x), s.split(", ")))
         self.num_grouping_variables = int(n)
         self.grouping_attributes = v.split(", ")
         self.f_vect = list(map(lambda x : Attribute.build_from_str(x), f.split(", ")))
-        self.select_condition_vect = list(map(lambda x : Parser.reformat(x), sigma.split("\n")))
+        self.select_condition_vect = list(map(lambda x : Parser.reformat(x), sigma.split(", ")))
         self.having_condition = g
     
+    # Construct an EMFQuery from a text file
+    # returns : new EMFQuery
+    def build_from_text(self, file_name):
+
+        with open(file_name) as f:
+            lines = f.readlines()
+        f.close()
+
+        # SELECT ATTRIBUTE (S):
+        s = lines[1].replace('\n', '')
+        # NUMBER OF GROUPING VARIABLES (n):
+        n = lines[3].replace('\n', '')
+        # GROUPING ATTRIBUTES (V):
+        v = lines[5].replace('\n', '')
+        # F-VECT ([F]):
+        f = lines[7].replace('\n', '')
+        # SELECT CONDITION-VECT ([σ]):
+        sigma = lines[9].replace('\n', '')
+        # HAVING CONDITION (G):
+        g = lines[11].replace('\n', '')
+
+        return EMFQuery(s, n, v, f, sigma, g)
+
     # Construct an EMFQuery from the command line
     # returns : new EMFQuery
-    def build():
+    def build(self):
         print("SELECT ATTRIBUTE (S):")
         s = input()
         print("NUMBER OF GROUPING VARIABLES (n):")
@@ -197,14 +220,12 @@ emf = EMFQuery(
     "3",
     "cust",
     "1_sum_quant, 1_avg_quant, 2_sum_quant, 3_sum_quant, 3_avg_quant",
-    """1.state='NY'
-    2.state='NJ'
-    3.state='CT'""",
+    "1.state='NY', 2.state='NJ', 3.state='CT'",
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
 )
 
 
-mf = MFStruct(emf)
+mf = MFStruct(emf.build_from_text('input.txt'))
 mf.populate_table()
 mf.group_by()
 mf.aggregate_all()
