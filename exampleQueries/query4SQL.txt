@@ -1,0 +1,23 @@
+with small as
+(select cust, prod, count(quant)
+from sales
+where sales.quant <= 100
+group by cust, prod),
+
+medium as
+(select cust, prod, count(quant)
+from sales
+where sales.quant < 800 and sales.quant > 100
+group by cust, prod),
+
+large as
+(select cust, prod, count(quant)
+from sales
+where sales.quant >= 800
+group by cust, prod)
+
+select small.cust, small.prod, small.count as num_small_purchases, medium.count as num_medium_purchases, large.count as num_large_purchases
+from small full outer join medium
+	on small.cust = medium.cust and small.prod = medium.prod
+full outer join large
+	on small.cust = large.cust and small.prod = large.prod
