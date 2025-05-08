@@ -3,15 +3,22 @@ class Parser:
     # Reformats select conditions to change grouping variable to current row
     # input_string : SQL-formatted comparison
     # returns : Python-formatted comparison
-    def reformat(input_string):
+    def reformat(input_string, columns):
         tokens = list(input_string)
         for i in range(len(tokens)):
             if tokens[i] == '.':
                 tokens[i - 1] = 'row'
+        
+        tokens = "".join(tokens)
+        tokens = tokens.split(" ")
+        for i in range(len(tokens)):
             if tokens[i] == '=':
                 tokens[i] = '=='
-        tokens = "".join(tokens)
-        return tokens
+            if tokens[i] in columns:
+                tokens[i] = "key." + tokens[i]
+
+        return "".join(tokens)
+
     # Reformats global having clause to get columns from current row
     # input_string : SQL-formatted comparison
     # columns : list of str
@@ -73,7 +80,7 @@ class EMFQuery:
         self.num_grouping_variables = int(n)
         self.grouping_attributes = v.split(", ")
         self.f_vect = list(map(lambda x : Attribute.build_from_str(x), f.split(", ")))
-        self.select_condition_vect = list(map(lambda x : Parser.reformat(x), sigma.split(", ")))
+        self.select_condition_vect = list(map(lambda x : Parser.reformat(x, ["cust", "prod", "day", "month", "year", "state", "quant", "date"]), sigma.split(", ")))
         self.having_condition = g
     
     # Construct an EMFQuery from a text file
@@ -174,10 +181,11 @@ class MFStruct:
                 val_list = []
                 for _,row in self.table.iterrows():
                     # discard row if the evaluation condition doesn't match (or is None)
-                    if condition != None and not eval(condition): continue
-                    # discard row if its grouping key doesn't match
-                    if tuple(row[self.emf.grouping_attributes]) == tuple(key):
-                        val_list.append(row[column])
+                    if condition not in [None, ""] and not eval(condition): continue
+                    # OR discard row if its grouping key doesn't match
+                    elif condition in [None, ""] and not tuple(row[self.emf.grouping_attributes]) == tuple(key): continue
+                    
+                    val_list.append(row[column])
                 self.column_vals[(column, grouping_variable)].append(val_list)
 
         # apply the appropriate aggregation function to the column
@@ -196,7 +204,7 @@ class MFStruct:
     def global_having_condition(self):
         print("applying having condition")
         # if the having condition isn't provided, skip
-        if self.emf.having_condition == None: return
+        if self.emf.having_condition in [None, ""]: return
         condition = Parser.reformat_having(self.emf.having_condition, self.data_output.columns)
 
         # drop each row from the table if it doesn't fit the G condition
@@ -235,7 +243,7 @@ import tabulate
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
 )"""
 
-emf = EMFQuery.build_from_text("demo1.txt")
+emf = EMFQuery.build_from_text("test.txt")
 mf = MFStruct(emf)
 mf.populate_table()
 mf.group_by()

@@ -1,0 +1,52 @@
+SELECT ATTRIBUTE (S):
+year, 1_count_quant, 2_count_quant, 3_count_quant
+NUMBER OF GROUPING VARIABLES (n):
+3
+GROUPING ATTRIBUTES (V):
+year
+F-VECT ([F]):
+1_count_quant, 2_count_quant, 3_count_quant
+SELECT CONDITION-VECT ([σ]):
+1.year = year - 1 , , 3.year = year + 1
+HAVING CONDITION (G):
+
+
+-------------------------
+with ny as 
+(select cust, avg(quant) as avg_ny_quant
+from sales
+where sales.state = 'NY'
+group by cust, state
+),
+
+nj as
+(select cust, avg(quant) as avg_nj_quant
+from sales
+where sales.state = 'NJ'
+group by cust, state
+),
+
+ct as
+(select cust, avg(quant) as avg_ct_quant
+from sales
+where sales.state = 'CT'
+group by cust, state
+),
+
+pa as
+(select cust, avg(quant) as avg_pa_quant
+from sales
+where sales.state = 'PA'
+group by cust, state
+),
+
+custs as
+(select distinct cust
+from sales)
+
+select pa.cust, avg_ny_quant, avg_nj_quant, avg_ct_quant, avg_pa_quant
+from custs
+    left outer join ny on custs.cust = ny.cust
+    left outer join nj on custs.cust = nj.cust
+    left outer join ct on custs.cust = ct.cust
+    left outer join pa on custs.cust = pa.cust
