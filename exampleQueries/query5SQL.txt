@@ -1,0 +1,27 @@
+with nj_l as
+(select prod, count(quant)as count_nj_large
+from sales
+where sales.quant > 500 and sales.state = 'NJ' 
+group by prod),
+
+nj_h as
+(select prod, count(quant) as count_nj_small
+from sales
+where sales.quant <= 500 and sales.state = 'NJ'
+group by prod),
+
+ny_l as
+(select prod, count(quant) as count_ny_large
+from sales
+where sales.quant > 500 and sales.state ='NY'
+group by prod),
+
+ny_h as
+(select prod, count(quant) as count_ny_small
+from sales
+where sales.quant <= 500 and sales.state = 'NY'
+group by prod)
+
+
+select *
+from nj_l natural join  nj_h natural join ny_l natural join ny_h

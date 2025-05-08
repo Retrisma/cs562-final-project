@@ -1,0 +1,9 @@
+Select
+From sales
+Group by prod; ny_l, ny_h, nj_l, nj_h
+Such that 
+	ny_l.quant < 500 and ny_l.state = 'NY'
+	ny_h.quant >= 500 and ny_h.state = 'NY'
+	nj_l.quant < 500 and nj_l.state = 'NJ'
+	nj_h.quant >= 500 and nj_h.state = 'NJ'
+	

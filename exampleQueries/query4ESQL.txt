@@ -1,0 +1,6 @@
+Select sales.cust, sales.prod, count(s.quant), count(m.quant), count(l.quant)
+From sales
+Group by cust, prod; s, m, l
+Such that s.quant <= 100
+	  m.quant > 100 and m.quant < 800
+	  l.quant >= 800
