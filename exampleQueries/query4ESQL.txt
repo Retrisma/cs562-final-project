@@ -1,6 +1,18 @@
-Select sales.cust, sales.prod, count(s.quant), count(m.quant), count(l.quant)
+SELECT ATTRIBUTE (S):
+cust, prodname, 1_count_quant, 2_count_quant
+NUMBER OF GROUPING VARIABLES (n):
+2
+GROUPING ATTRIBUTES (V):
+cust, prodname
+F-VECT ([F]):
+1_count_quant, 2_count_quant
+SELECT CONDITION-VECT ([σ]):
+1.quant <= 100, 2.quant >= 800
+HAVING CONDITION (G):
+
+
+Select sales.cust, sales.prod, count(s.quant), count(l.quant)
 From sales
-Group by cust, prod; s, m, l
+Group by cust, prod; s,l
 Such that s.quant <= 100
-	  m.quant > 100 and m.quant < 800
 	  l.quant >= 800

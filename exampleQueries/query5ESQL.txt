@@ -1,6 +1,24 @@
-Select
+SELECT ATTRIBUTE (S):
+prodname, 1_count_quant, 2_count_quant, 3_count_quant, 4_count_quant
+NUMBER OF GROUPING VARIABLES (n):
+4
+GROUPING ATTRIBUTES (V):
+prodname
+F-VECT ([F]):
+1_count_quant, 2_count_quant, 3_count_quant, 4_count_quant
+SELECT CONDITION-VECT ([σ]):
+1.quant < 500 and 1.state = 'NY'
+2.quant >= 500 and 2.state = 'NY'
+3.quant < 500 and 3.state = 'NJ'
+4.quant >= 500 and 4.state = 'NJ'
+HAVING CONDITION (G):
+
+
+
+
+Select prodname, count(ny_l.quant), count(ny_h.quant), count(nj_l.quant), count(nj_h.quant) 
 From sales
-Group by prod; ny_l, ny_h, nj_l, nj_h
+Group by prodname; ny_l, ny_h, nj_l, nj_h
 Such that 
 	ny_l.quant < 500 and ny_l.state = 'NY'
 	ny_h.quant >= 500 and ny_h.state = 'NY'

@@ -1,6 +1,20 @@
+SELECT ATTRIBUTE (S):
+Cust, year, 1_count_year, 2_count_year, 3_count_year, 4_count_year
+NUMBER OF GROUPING VARIABLES (n):
+4
+GROUPING ATTRIBUTES (V):
+cust, year
+F_VECT([F]):
+1_count_year, 2_count_year, 3_count_year, 4_count_year
+SELECT CONDITION_VECT ([σ]):
+1.year = 2017, 2.year = 2018, 3.year = 2019, 4.year = 2020
+HAVING CONDITION (G):
+
+
+
 Select sales.cust, sales.year, count(y1.year), count(y2.year), count(y3.year), count(y4.year)
 From sales
-Group by just, year; y1, y2, y3
+Group by just, year; y1, y2, y3, y4
 such that
 	y1.year = 2017 and sales.cust = y1.cust
 	y2.year = 2018 and sales.cust = y2.cust
