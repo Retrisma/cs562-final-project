@@ -12,5 +12,5 @@ where sales.quant >= 800
 group by cust, prod)
 
 select small.cust, small.prod, small.count as num_small_purchases, large.count as num_large_purchases
-from small full outer large
+from small full outer join large
 	on small.cust = large.cust and small.prod = large.prod
