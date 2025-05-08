@@ -1,0 +1,4 @@
+Select cust, avg(ny.quant) as avg_ny_quant, avg(nj.quant) as avg_nj_quant, avg(ct.quant) as avg_ct_quant, avg(pa.quant) as avg_pa_quant
+From sales
+Group by just; nj, ny, ct, pa
+Such that nj.state = “NJ”, ny.state = “NY”, ct.state = “CT”, pa.state = “PA”
