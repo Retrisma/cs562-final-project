@@ -78,8 +78,7 @@ class EMFQuery:
     
     # Construct an EMFQuery from a text file
     # returns : new EMFQuery
-    def build_from_text(self, file_name):
-
+    def build_from_text(file_name):
         with open(file_name) as f:
             lines = f.readlines()
         f.close()
@@ -131,6 +130,7 @@ class MFStruct:
         self.column_vals = {}
 
     # get initial data from SQL database
+    # N.B.: columns from sales table are hardcoded in this function
     def populate_table(self):
         query = f"SELECT * FROM sales"
         table = sql.query(query)
@@ -209,23 +209,25 @@ class MFStruct:
             if column_name not in list(map(lambda x : x.string, self.emf.select_attributes)):
                 self.data_output.drop(columns=[column], inplace=True)
             else: self.data_output.rename(columns={column: column_name})
+
+        self.data_output = self.data_output[list(map(lambda x: "_" + x.string if x.string[0].isdigit() else x.string, self.emf.select_attributes))]
         print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
 
 import tabulate
 
 
 
-emf = EMFQuery(
+"""emf = EMFQuery(
     "cust, sum_quant, 1_sum_quant, 2_sum_quant, 3_sum_quant",
     "3",
     "cust",
     "1_sum_quant, 1_avg_quant, 2_sum_quant, 3_sum_quant, 3_avg_quant",
     "1.state='NY', 2.state='NJ', 3.state='CT'",
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
-)
+)"""
 
-
-mf = MFStruct(emf.build_from_text('input.txt'))
+emf = EMFQuery.build_from_text("demo1.txt")
+mf = MFStruct(emf)
 mf.populate_table()
 mf.group_by()
 mf.aggregate_all()
