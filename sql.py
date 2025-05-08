@@ -22,4 +22,4 @@ def query(query):
 
     output = []
     for row in cur: output.append(row)
-    return output
+    return output[1:200]

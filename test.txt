@@ -1,13 +1,13 @@
 SELECT ATTRIBUTE (S):
-cust, prod, 1_count_cust, 2_count_cust
+cust, prodname, 1_avg_quant, 2_avg_quant
 NUMBER OF GROUPING VARIABLES (n):
 2
 GROUPING ATTRIBUTES (V):
-cust, prod
+cust, prodname
 F-VECT ([F]):
-avg_quant, 1_count_cust, 2_count_cust
+avg_quant, 1_avg_quant, 2_avg_quant
 SELECT CONDITION-VECT ([σ]):
-1.year < 2017 and 1.quant > avg_quant, 2.year < 2018 and 2.quant > avg_quant
+1.quant > avg_quant and 1.cust = cust and 1.prodname = prodname, 2.year < 2018 and 2.quant > avg_quant and 2.cust = cust and 2.prodname = prodname
 HAVING CONDITION (G):
 
 

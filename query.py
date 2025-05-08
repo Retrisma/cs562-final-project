@@ -1,3 +1,6 @@
+from multiprocessing import Pool
+import numpy as np
+
 # Reformats input strings from SQL to be python-friendly
 class Parser:
     # Reformats select conditions to change grouping variable to current row
@@ -80,7 +83,7 @@ class EMFQuery:
         self.num_grouping_variables = int(n)
         self.grouping_attributes = v.split(", ")
         self.f_vect = list(map(lambda x : Attribute.build_from_str(x), f.split(", ")))
-        self.select_condition_vect = list(map(lambda x : Parser.reformat(x, ["cust", "prod", "day", "month", "year", "state", "quant", "date"]), sigma.split(", ")))
+        self.select_condition_vect = list(map(lambda x : Parser.reformat(x, ["cust", "prodname", "day", "month", "year", "state", "quant", "date"]), sigma.split(", ")))
         self.having_condition = g
     
     # Construct an EMFQuery from a text file
@@ -141,7 +144,7 @@ class MFStruct:
     def populate_table(self):
         query = f"SELECT * FROM sales"
         table = sql.query(query)
-        self.table = pd.DataFrame(table, columns=["cust", "prod", "day", "month", "year", "state", "quant", "date"])
+        self.table = pd.DataFrame(table, columns=["cust", "prodname", "day", "month", "year", "state", "quant", "date"])
 
     # construct groups according to the defined group-by attributes
     def group_by(self):
@@ -172,33 +175,55 @@ class MFStruct:
             new_column_name = "_" + str(grouping_variable) + "_" + new_column_name
 
         print("aggregating " + new_column_name)
-        
+
+        num_p = 6
+
+        frames = np.array_split(self.table, num_p)
+
         # if G.V. and column pair is present in dynamic programming table, we don't need to aggregate again
         if (column, grouping_variable) not in self.column_vals:
-            self.column_vals[(column, grouping_variable)] = []
-            # for each group: collect all values of column for all matching rows
-            for idx,key in self.groups.iterrows():
-                val_list = []
-                for _,row in self.table.iterrows():
-                    # discard row if the evaluation condition doesn't match (or is None)
-                    if condition not in [None, ""] and not eval(condition): continue
-                    # OR discard row if its grouping key doesn't match
-                    if condition in [None, ""] and not tuple(row[self.emf.grouping_attributes]) == tuple(key): continue
-                    
-                    val_list.append(row[column])
-                self.column_vals[(column, grouping_variable)].append(val_list)
+            with Pool(processes=num_p) as pool:
+                results = pool.starmap(self._aggregate_frame, [(frame, column, condition) for frame in frames])
+
+            self.column_vals[(column, grouping_variable)] = [sum(sub, []) for sub in zip(*results)]
 
         # apply the appropriate aggregation function to the column
         self.data_output[new_column_name] = list(map(aggregation_functions[aggregation_function], self.column_vals[(column, grouping_variable)]))
     
     # aggregate each requested column of the table in sequence
     def aggregate_all(self):
-        # the columns that must be aggregated are both S and [f], without duplicates
-        for f in list(set(self.emf.select_attributes) | set(self.emf.f_vect)):
+        for f in self.emf.f_vect:
             self.aggregate(f.column, f.aggregation_function, 
                            self.emf.select_condition_vect[int(f.grouping_var) - 1] if f.grouping_var != None else None,
                            f.grouping_var)
             print(tabulate.tabulate(mf.data_output, headers="keys", tablefmt="psql", showindex=False))
+
+    def _aggregate_frame(self, frame, column, condition):
+        output = []
+        
+        # for each group: collect all values of column for all matching rows
+        for idx,key in self.groups.iterrows():
+            if condition is not None:
+                tokens = condition.split(" ")
+                for i in range(len(tokens)):
+                    if tokens[i] in self.data_output:
+                        str_query = ""
+                        for group in self.emf.grouping_attributes:
+                            str_query += group + " == '" + key[group] + "' and "
+                        str_query += "True"
+                        tokens[i] = str(self.data_output.query(str_query)[tokens[i]][0])
+                        pass
+                condition = " ".join(tokens)
+            val_list = []
+            for _,row in frame.iterrows():
+                # discard row if the evaluation condition doesn't match (or is None)
+                if condition not in [None, ""] and not eval(condition): continue
+                # OR discard row if its grouping key doesn't match
+                if condition in [None, ""] and not tuple(row[self.emf.grouping_attributes]) == tuple(key): continue
+                
+                val_list.append(row[column])
+            output.append(val_list)
+        return output
 
     # apply the global having condition (G) to the final table
     def global_having_condition(self):
@@ -243,11 +268,12 @@ import tabulate
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
 )"""
 
-#emf = EMFQuery.build_from_text("exampleQueries/query1ESQL.txt")
-emf = EMFQuery.build_from_text("test.txt")
-mf = MFStruct(emf)
-mf.populate_table()
-mf.group_by()
-mf.aggregate_all()
-mf.global_having_condition()
-mf.clean_up()
+if __name__ == '__main__':
+    #emf = EMFQuery.build_from_text("exampleQueries/query1ESQL.txt")
+    emf = EMFQuery.build_from_text("test.txt")
+    mf = MFStruct(emf)
+    mf.populate_table()
+    mf.group_by()
+    mf.aggregate_all()
+    mf.global_having_condition()
+    mf.clean_up()
