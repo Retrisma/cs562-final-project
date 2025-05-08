@@ -1,0 +1,52 @@
+SELECT ATTRIBUTE (S):
+cust, 1_avg_quant, 2_avg_quant, 3_avg_quant, 4_avg_quant
+NUMBER OF GROUPING VARIABLES (n):
+4
+GROUPING ATTRIBUTES (V):
+cust
+F-VECT ([F]):
+1_avg_quant, 2_avg_quant, 3_avg_quant, 4_avg_quant
+SELECT CONDITION-VECT ([σ]):
+1.state='NY', 2.state='NJ', 3.state='CT', 4.state='PA'
+HAVING CONDITION (G):
+1_avg_quant > 2 * 2_avg_quant or 1_avg_quant <= 2 * 2_avg_quant
+
+-------------------------
+with ny as 
+(select cust, avg(quant) as avg_ny_quant
+from sales
+where sales.state = 'NY'
+group by cust, state
+),
+
+nj as
+(select cust, avg(quant) as avg_nj_quant
+from sales
+where sales.state = 'NJ'
+group by cust, state
+),
+
+ct as
+(select cust, avg(quant) as avg_ct_quant
+from sales
+where sales.state = 'CT'
+group by cust, state
+),
+
+pa as
+(select cust, avg(quant) as avg_pa_quant
+from sales
+where sales.state = 'PA'
+group by cust, state
+),
+
+custs as
+(select distinct cust
+from sales)
+
+select pa.cust, avg_ny_quant, avg_nj_quant, avg_ct_quant, avg_pa_quant
+from custs
+    left outer join ny on custs.cust = ny.cust
+    left outer join nj on custs.cust = nj.cust
+    left outer join ct on custs.cust = ct.cust
+    left outer join pa on custs.cust = pa.cust
