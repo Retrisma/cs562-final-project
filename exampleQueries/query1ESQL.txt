@@ -1,4 +1,12 @@
-Select cust, avg(ny.quant) as avg_ny_quant, avg(nj.quant) as avg_nj_quant, avg(ct.quant) as avg_ct_quant, avg(pa.quant) as avg_pa_quant
-From sales
-Group by just; nj, ny, ct, pa
-Such that nj.state = “NJ”, ny.state = “NY”, ct.state = “CT”, pa.state = “PA”
+SELECT ATTRIBUTE (S):
+cust, 1_avg_quant, 2_avg_quant, 3_avg_quant, 4_avg_quant
+NUMBER OF GROUPING VARIABLES (n):
+4
+GROUPING ATTRIBUTES (V):
+cust
+F-VECT ([F]):
+1_avg_quant, 2_avg_quant, 3_avg_quant, 4_avg_quant
+SELECT CONDITION-VECT ([σ]):
+1.state='NY', 2.state='NJ', 3.state='CT', 4.state='PA'
+HAVING CONDITION (G):
+

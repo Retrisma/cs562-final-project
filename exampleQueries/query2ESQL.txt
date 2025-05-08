@@ -1,5 +1,24 @@
+SELECT ATTRIBUTE (S):
+year, prod, 1_avg_quant, 2_avg_quant, 3_avg_quant
+NUMBER OF GROUPING VARIABLES (n):
+3
+GROUPING ATTRIBUTES (V):
+year, prod
+F-VECT ([F]):
+1_sum_quant, 1_avg_quant, 2_sum_quant, 2_avg_quant, 3_sum_quant, 3_avg_quant
+SELECT CONDITION-VECT ([σ]):
+1.year=year-1, 2.year=year, 3.year=year+1
+HAVING CONDITION (G):
+
+
+
 Select sales.year, sales.prod, avg(yr_after.quant), avg(yr_before.quant)
 From sales
 Group by year, prod; yr_after, yr_before
-Such that sales.year = yr_after.year+1 and sales.prod = yr_after.prod
-	sales.year = yr_before.year-1 and sales.prod = yr_after.prod
+Such that sales.year = yr_after.year+1
+and sales.prod = yr_after.prod
+and sales.year = yr_before.year-1
+and sales.prod = yr_after.prod
+
+--------------------
+
