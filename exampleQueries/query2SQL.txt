@@ -1,0 +1,10 @@
+with yr_avgs as
+(select year, prod, avg(quant)
+from sales
+group by year, prod)
+
+select yr_avgs.year, yr_avgs.prod, plus_yr.avg as avg_year_before, yr_avgs.avg, minus_yr.avg as avg_year_after 
+from yr_avgs left outer join yr_avgs plus_yr
+on yr_avgs.year = plus_yr.year+1 and yr_avgs.prod = plus_yr.prod
+left outer join yr_avgs minus_yr
+on yr_avgs.year = minus_yr.year-1 and yr_avgs.prod = minus_yr.prod

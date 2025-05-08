@@ -1,0 +1,5 @@
+Select sales.year, sales.prod, avg(yr_after.quant), avg(yr_before.quant)
+From sales
+Group by year, prod; yr_after, yr_before
+Such that sales.year = yr_after.year+1 and sales.prod = yr_after.prod
+	sales.year = yr_before.year-1 and sales.prod = yr_after.prod
