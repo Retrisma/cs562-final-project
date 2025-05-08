@@ -1,0 +1,8 @@
+Select sales.cust, sales.year, count(y1.year), count(y2.year), count(y3.year), count(y4.year)
+From sales
+Group by just, year; y1, y2, y3
+such that
+	y1.year = 2017 and sales.cust = y1.cust
+	y2.year = 2018 and sales.cust = y2.cust
+	y3.year = 2019 and sales.cust = y3.cust
+	y4.year = 2020 and sales.cust = y4.cust

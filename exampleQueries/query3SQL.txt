@@ -1,0 +1,27 @@
+-- count of unique days purchases were on for each customer 
+-- aka how many times each customer purchased something for each year
+
+with a as
+(select cust, sales.year, count(quant)
+from sales
+group by cust, sales.year
+),
+
+specify_2016 as
+(select cust, sales.year, count(quant)
+from sales
+group by cust, sales.year
+having sales.year = 2016)
+
+
+select a2.cust, a2.year, a3.count as next_yr_count, a4.count as two_years_after_count, a5.count as three_years_after_count
+from specify_2016 left outer join a a2
+on specify_2016.year = a2.year-1 and specify_2016.cust = a2.cust
+left outer join a a3 
+on specify_2016.year = a3.year-2 and specify_2016.cust = a3.cust
+left outer join a a4 
+on specify_2016.year = a4.year-3 and specify_2016.cust = a4.cust
+left outer join a a5 
+on specify_2016.year = a5.year-4 and specify_2016.cust = a5.cust
+
+
