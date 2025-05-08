@@ -7,6 +7,6 @@ cust
 F-VECT ([F]):
 1_avg_quant, 2_avg_quant, 3_avg_quant, 4_avg_quant
 SELECT CONDITION-VECT ([σ]):
-1.state='NY', 2.state='NJ', 3.state='CT', 4.state='PA'
+1.cust = cust and 1.state = 'NY', 2.cust = cust and 2.state = 'NJ', 3.cust = cust and 3.state = 'CT', 4.cust = cust and 4.state = 'PA'
 HAVING CONDITION (G):
 

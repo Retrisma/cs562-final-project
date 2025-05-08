@@ -17,7 +17,7 @@ class Parser:
             if tokens[i] in columns:
                 tokens[i] = "key." + tokens[i]
 
-        return "".join(tokens)
+        return " ".join(tokens)
 
     # Reformats global having clause to get columns from current row
     # input_string : SQL-formatted comparison
@@ -160,7 +160,7 @@ class MFStruct:
         # definitions of aggregation function names
         aggregation_functions = {
             "sum": sum,
-            "avg": lambda x: sum(x) / len(x),
+            "avg": lambda x: sum(x) / len(x) if len(x) > 0 else float('nan'),
             "count": len,
             "max": max,
             "min": min
@@ -183,7 +183,7 @@ class MFStruct:
                     # discard row if the evaluation condition doesn't match (or is None)
                     if condition not in [None, ""] and not eval(condition): continue
                     # OR discard row if its grouping key doesn't match
-                    elif condition in [None, ""] and not tuple(row[self.emf.grouping_attributes]) == tuple(key): continue
+                    if condition in [None, ""] and not tuple(row[self.emf.grouping_attributes]) == tuple(key): continue
                     
                     val_list.append(row[column])
                 self.column_vals[(column, grouping_variable)].append(val_list)
@@ -243,6 +243,7 @@ import tabulate
     "1_sum_quant > 2 * 2_sum_quant or 1_avg_quant > 3_avg_quant"
 )"""
 
+#emf = EMFQuery.build_from_text("exampleQueries/query1ESQL.txt")
 emf = EMFQuery.build_from_text("test.txt")
 mf = MFStruct(emf)
 mf.populate_table()
